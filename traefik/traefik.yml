@@ -1,0 +1,65 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+  dashboard: true
+  insecure: false
+
+ping:
+  entryPoint: "web"
+  manualRouting: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - security-headers@file
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: ${CF_EMAIL:-admin@metl.run}
+      storage: /letsencrypt/acme.json
+      tlsChallenge: {}
+      # Cloudflare DNS challenge (recommended for wildcard):
+      # dnsChallenge:
+      #   provider: cloudflare
+
+providers:
+  docker:
+    exposedByDefault: false
+    watch: true
+    network: metl-platform
+    defaultRule: "Host(`metl.run`)"
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  filePath: "/var/log/traefik-access.log"
+  format: json
+  bufferingSize: 100
+
+tracing:
+  jaeger: {}
+
+# ServerTransport for backend connections
+transport:
+  serversTransport:
+    insecureSkipVerify: true

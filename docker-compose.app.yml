@@ -1,0 +1,283 @@
+# ============================================
+# Metl Production — VM-1: Unified Application Server
+# Traefik reverse proxy + all platform services + AI agents
+# ============================================
+name: metl-app
+
+services:
+  # ============================================
+  # TRAEFIK — Single entry point for ALL traffic
+  # ============================================
+  traefik:
+    image: traefik:v2.11
+    container_name: metl-traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "80:80"
+      - "443:443"
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/letsencrypt/acme.json
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    environment:
+      - CF_API_EMAIL=${CF_EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+    networks:
+      - metl-platform
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`metl.run`) && PathPrefix(`/traefik`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth@file,strip-traefik-prefix@file"
+      - "traefik.http.routers.traefik.priority=1000"
+
+  # ============================================
+  # UNIFIED FRONTEND
+  # ============================================
+  metl-frontend:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-frontend:latest
+    container_name: metl-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://metl.run/api
+      - INTERNAL_VAULT_URL=http://simple-vault:3002
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    networks:
+      - metl-platform
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.metl-frontend.rule=Host(`metl.run`) || Host(`www.metl.run`)"
+      - "traefik.http.routers.metl-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.metl-frontend.priority=100"
+      - "traefik.http.services.metl-frontend.loadbalancer.server.port=3000"
+
+  # ============================================
+  # API GATEWAY — Control-Plane (ONLY public API)
+  # ============================================
+  control-plane:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-control-plane:latest
+    container_name: metl-control-plane
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+      - REDIS_HOST=${DATA_SERVER_IP}
+      - INTERNAL_VAULT_URL=http://simple-vault:3002
+      - DATA_SERVER_IP=${DATA_SERVER_IP}
+      - WS_PORT=3002
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - AI_FOUNDRY_ENDPOINT_1=${AI_FOUNDRY_ENDPOINT_1}
+      - AI_FOUNDRY_KEY_1=${AI_FOUNDRY_KEY_1}
+      - AI_FOUNDRY_MODEL_1=${AI_FOUNDRY_MODEL_1:-gpt-4o}
+      - AI_FOUNDRY_ENDPOINT_2=${AI_FOUNDRY_ENDPOINT_2}
+      - AI_FOUNDRY_KEY_2=${AI_FOUNDRY_KEY_2}
+      - AI_FOUNDRY_MODEL_2=${AI_FOUNDRY_MODEL_2:-glm-4}
+      - AI_FOUNDRY_ENDPOINT_3=${AI_FOUNDRY_ENDPOINT_3}
+      - AI_FOUNDRY_KEY_3=${AI_FOUNDRY_KEY_3}
+      - AI_FOUNDRY_MODEL_3=${AI_FOUNDRY_MODEL_3:-kimi}
+      - AI_FOUNDRY_ENDPOINT_4=${AI_FOUNDRY_ENDPOINT_4}
+      - AI_FOUNDRY_KEY_4=${AI_FOUNDRY_KEY_4}
+      - AI_FOUNDRY_MODEL_4=${AI_FOUNDRY_MODEL_4:-deepseek-chat}
+      - AI_FOUNDRY_ENDPOINT_5=${AI_FOUNDRY_ENDPOINT_5}
+      - AI_FOUNDRY_KEY_5=${AI_FOUNDRY_KEY_5}
+      - AI_FOUNDRY_MODEL_5=${AI_FOUNDRY_MODEL_5:-grok}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - metl-platform
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.control-plane.rule=Host(`metl.run`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.control-plane.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.control-plane.priority=80"
+      - "traefik.http.routers.control-plane.middlewares=rate-limit@file"
+      - "traefik.http.services.control-plane.loadbalancer.server.port=3001"
+
+  # ============================================
+  # PLATFORM SERVICES (internal — no Traefik labels)
+  # ============================================
+  orchestration-agent:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-orchestration-agent:latest
+    container_name: metl-orchestration-agent
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+    networks:
+      - metl-platform
+
+  resource-allocator:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-resource-allocator:latest
+    container_name: metl-resource-allocator
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+    networks:
+      - metl-platform
+
+  deployment-engine:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-deployment-engine:latest
+    container_name: metl-deployment-engine
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+      - BUILDS_DIR=/tmp/builds
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./builds:/tmp/builds
+    networks:
+      - metl-platform
+
+  sre-agent:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-sre-agent:latest
+    container_name: metl-sre-agent
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+    networks:
+      - metl-platform
+
+  eco-mode:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-eco-mode:latest
+    container_name: metl-eco-mode
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+    networks:
+      - metl-platform
+
+  ejection-agent:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-ejection-agent:latest
+    container_name: metl-ejection-agent
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+    networks:
+      - metl-platform
+
+  scaling-agent:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-scaling-agent:latest
+    container_name: metl-scaling-agent
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+    networks:
+      - metl-platform
+
+  simple-vault:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-simple-vault:latest
+    container_name: metl-simple-vault
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - VAULT_KEY=${VAULT_KEY}
+    networks:
+      - metl-platform
+    # Internal only — no traefik labels
+
+  # ============================================
+  # PLATFORM AI AGENTS (internal via NATS)
+  # ============================================
+  vibe-coder:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder:latest
+    container_name: metl-vibe-coder
+    restart: unless-stopped
+    environment:
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - AI_FOUNDRY_ENDPOINT_1=${AI_FOUNDRY_ENDPOINT_1}
+      - AI_FOUNDRY_KEY_1=${AI_FOUNDRY_KEY_1}
+      - AI_FOUNDRY_MODEL_1=${AI_FOUNDRY_MODEL_1:-gpt-4o}
+      - AI_FOUNDRY_ENDPOINT_2=${AI_FOUNDRY_ENDPOINT_2}
+      - AI_FOUNDRY_KEY_2=${AI_FOUNDRY_KEY_2}
+      - AI_FOUNDRY_MODEL_2=${AI_FOUNDRY_MODEL_2:-glm-4}
+      - AI_FOUNDRY_ENDPOINT_3=${AI_FOUNDRY_ENDPOINT_3}
+      - AI_FOUNDRY_KEY_3=${AI_FOUNDRY_KEY_3}
+      - AI_FOUNDRY_MODEL_3=${AI_FOUNDRY_MODEL_3:-kimi}
+      - AI_FOUNDRY_ENDPOINT_4=${AI_FOUNDRY_ENDPOINT_4}
+      - AI_FOUNDRY_KEY_4=${AI_FOUNDRY_KEY_4}
+      - AI_FOUNDRY_MODEL_4=${AI_FOUNDRY_MODEL_4:-deepseek-chat}
+      - AI_FOUNDRY_ENDPOINT_5=${AI_FOUNDRY_ENDPOINT_5}
+      - AI_FOUNDRY_KEY_5=${AI_FOUNDRY_KEY_5}
+      - AI_FOUNDRY_MODEL_5=${AI_FOUNDRY_MODEL_5:-grok}
+    networks:
+      - metl-platform
+
+  vibe-coder-sdk:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder-sdk:latest
+    container_name: metl-vibe-coder-sdk
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+      - CURSOR_API_KEY_1=${CURSOR_API_KEY_1}
+      - CURSOR_API_KEY_2=${CURSOR_API_KEY_2}
+      - CURSOR_API_KEY_3=${CURSOR_API_KEY_3}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - AI_FOUNDRY_ENDPOINT_1=${AI_FOUNDRY_ENDPOINT_1}
+      - AI_FOUNDRY_KEY_1=${AI_FOUNDRY_KEY_1}
+      - AI_FOUNDRY_MODEL_1=${AI_FOUNDRY_MODEL_1:-gpt-4o}
+      - AI_FOUNDRY_ENDPOINT_2=${AI_FOUNDRY_ENDPOINT_2}
+      - AI_FOUNDRY_KEY_2=${AI_FOUNDRY_KEY_2}
+      - AI_FOUNDRY_MODEL_2=${AI_FOUNDRY_MODEL_2:-glm-4}
+      - AI_FOUNDRY_ENDPOINT_3=${AI_FOUNDRY_ENDPOINT_3}
+      - AI_FOUNDRY_KEY_3=${AI_FOUNDRY_KEY_3}
+      - AI_FOUNDRY_MODEL_3=${AI_FOUNDRY_MODEL_3:-kimi}
+      - AI_FOUNDRY_ENDPOINT_4=${AI_FOUNDRY_ENDPOINT_4}
+      - AI_FOUNDRY_KEY_4=${AI_FOUNDRY_KEY_4}
+      - AI_FOUNDRY_MODEL_4=${AI_FOUNDRY_MODEL_4:-deepseek-chat}
+      - AI_FOUNDRY_ENDPOINT_5=${AI_FOUNDRY_ENDPOINT_5}
+      - AI_FOUNDRY_KEY_5=${AI_FOUNDRY_KEY_5}
+      - AI_FOUNDRY_MODEL_5=${AI_FOUNDRY_MODEL_5:-grok}
+    networks:
+      - metl-platform
+
+  security-hunter:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-security-hunter:latest
+    container_name: metl-security-hunter
+    restart: unless-stopped
+    environment:
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - SONARQUBE_URL=http://${DATA_SERVER_IP}:9000
+      - SONARQUBE_TOKEN=${SONARQUBE_TOKEN}
+    networks:
+      - metl-platform
+
+networks:
+  metl-platform:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16

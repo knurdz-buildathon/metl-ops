@@ -1,0 +1,49 @@
+# Environment variables with secrets
+.env
+.env.local
+.env.production
+!.env.example
+
+# SSL certificates
+**/acme.json
+**/certs/*.pem
+**/certs/*.key
+
+# Backups (may contain sensitive data)
+backups/
+backups/archive/
+*.sql
+*.sql.gz
+*.dump
+
+# Runtime data
+data/
+builds/
+workspace-volumes/
+
+# Docker volumes
+volumes/
+*.volume
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode / Cursor
+.vscode/
+.cursor/
+*.code-workspace
+
+# Infrastructure output
+azure-infrastructure.json
+.terraform/
+*.tfstate
+
+# Temp
+tmp/
+temp/
+*.tmp

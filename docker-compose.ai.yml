@@ -1,0 +1,72 @@
+# ============================================
+# Metl Production — VM-3: AI Worker
+# Metl Platform AI Agents (vibe-coder, vibe-coder-sdk)
+# ============================================
+name: metl-ai
+
+services:
+  vibe-coder:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder:latest
+    container_name: metl-vibe-coder
+    restart: unless-stopped
+    environment:
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - AI_FOUNDRY_ENDPOINT_1=${AI_FOUNDRY_ENDPOINT_1}
+      - AI_FOUNDRY_KEY_1=${AI_FOUNDRY_KEY_1}
+      - AI_FOUNDRY_MODEL_1=${AI_FOUNDRY_MODEL_1:-gpt-4o}
+      - AI_FOUNDRY_ENDPOINT_2=${AI_FOUNDRY_ENDPOINT_2}
+      - AI_FOUNDRY_KEY_2=${AI_FOUNDRY_KEY_2}
+      - AI_FOUNDRY_MODEL_2=${AI_FOUNDRY_MODEL_2:-glm-4}
+      - AI_FOUNDRY_ENDPOINT_3=${AI_FOUNDRY_ENDPOINT_3}
+      - AI_FOUNDRY_KEY_3=${AI_FOUNDRY_KEY_3}
+      - AI_FOUNDRY_MODEL_3=${AI_FOUNDRY_MODEL_3:-kimi}
+      - AI_FOUNDRY_ENDPOINT_4=${AI_FOUNDRY_ENDPOINT_4}
+      - AI_FOUNDRY_KEY_4=${AI_FOUNDRY_KEY_4}
+      - AI_FOUNDRY_MODEL_4=${AI_FOUNDRY_MODEL_4:-deepseek-chat}
+      - AI_FOUNDRY_ENDPOINT_5=${AI_FOUNDRY_ENDPOINT_5}
+      - AI_FOUNDRY_KEY_5=${AI_FOUNDRY_KEY_5}
+      - AI_FOUNDRY_MODEL_5=${AI_FOUNDRY_MODEL_5:-grok}
+    networks:
+      - metl-ai
+
+  vibe-coder-sdk:
+    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder-sdk:latest
+    container_name: metl-vibe-coder-sdk
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NATS_URL=nats://${DATA_SERVER_IP}:4222
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATA_SERVER_IP}:5432/${POSTGRES_DB}
+      - CURSOR_API_KEY_1=${CURSOR_API_KEY_1}
+      - CURSOR_API_KEY_2=${CURSOR_API_KEY_2}
+      - CURSOR_API_KEY_3=${CURSOR_API_KEY_3}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - AI_FOUNDRY_ENDPOINT_1=${AI_FOUNDRY_ENDPOINT_1}
+      - AI_FOUNDRY_KEY_1=${AI_FOUNDRY_KEY_1}
+      - AI_FOUNDRY_MODEL_1=${AI_FOUNDRY_MODEL_1:-gpt-4o}
+      - AI_FOUNDRY_ENDPOINT_2=${AI_FOUNDRY_ENDPOINT_2}
+      - AI_FOUNDRY_KEY_2=${AI_FOUNDRY_KEY_2}
+      - AI_FOUNDRY_MODEL_2=${AI_FOUNDRY_MODEL_2:-glm-4}
+      - AI_FOUNDRY_ENDPOINT_3=${AI_FOUNDRY_ENDPOINT_3}
+      - AI_FOUNDRY_KEY_3=${AI_FOUNDRY_KEY_3}
+      - AI_FOUNDRY_MODEL_3=${AI_FOUNDRY_MODEL_3:-kimi}
+      - AI_FOUNDRY_ENDPOINT_4=${AI_FOUNDRY_ENDPOINT_4}
+      - AI_FOUNDRY_KEY_4=${AI_FOUNDRY_KEY_4}
+      - AI_FOUNDRY_MODEL_4=${AI_FOUNDRY_MODEL_4:-deepseek-chat}
+      - AI_FOUNDRY_ENDPOINT_5=${AI_FOUNDRY_ENDPOINT_5}
+      - AI_FOUNDRY_KEY_5=${AI_FOUNDRY_KEY_5}
+      - AI_FOUNDRY_MODEL_5=${AI_FOUNDRY_MODEL_5:-grok}
+    networks:
+      - metl-ai
+
+networks:
+  metl-ai:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16

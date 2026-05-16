@@ -1,0 +1,109 @@
+name: Deploy Metl Ops Stack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker-compose.*.yml'
+      - 'traefik/**'
+      - 'monitoring/**'
+      - 'scripts/**'
+      - '.env.example'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  deploy-data:
+    name: Deploy VM-2 (Data)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy configs to VM-2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM2_HOST }}
+          username: metladmin
+          key: ${{ secrets.VM2_SSH_KEY }}
+          source: "docker-compose.data.yml,monitoring/,backups/"
+          target: "~/metl-ops"
+          strip_components: 0
+
+      - name: Start Data Stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM2_HOST }}
+          username: metladmin
+          key: ${{ secrets.VM2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ~/metl-ops
+            docker-compose -f docker-compose.data.yml up -d --remove-orphans
+            docker image prune -af --filter "until=168h"
+
+  deploy-app:
+    name: Deploy VM-1 (App)
+    needs: deploy-data
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy configs to VM-1
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM1_HOST }}
+          username: metladmin
+          key: ${{ secrets.VM1_SSH_KEY }}
+          source: "docker-compose.app.yml,traefik/"
+          target: "~/metl-ops"
+          strip_components: 0
+
+      - name: Start App Stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM1_HOST }}
+          username: metladmin
+          key: ${{ secrets.VM1_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ~/metl-ops
+            touch traefik/acme.json
+            chmod 600 traefik/acme.json
+            docker-compose -f docker-compose.app.yml up -d --remove-orphans
+            docker image prune -af --filter "until=168h"
+
+  deploy-ai:
+    name: Deploy VM-3 (AI Worker)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy configs to VM-3
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM3_HOST }}
+          username: metladmin
+          key: ${{ secrets.VM3_SSH_KEY }}
+          source: "docker-compose.ai.yml"
+          target: "~/metl-ops"
+          strip_components: 0
+
+      - name: Start AI Stack
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM3_HOST }}
+          username: metladmin
+          key: ${{ secrets.VM3_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd ~/metl-ops
+            docker-compose -f docker-compose.ai.yml up -d --remove-orphans
+            docker image prune -af --filter "until=168h"

@@ -1,0 +1,53 @@
+http:
+  middlewares:
+    traefik-auth:
+      basicAuth:
+        users:
+          # Generate with: htpasswd -nb admin YOUR_PASSWORD
+          # Default below is admin / metl-admin-2026
+          # CHANGE THIS IN PRODUCTION!
+          - "admin:$apr1$qN.6f7vo$mQQN6RJKxYnq/QF3y3qZl0"
+
+    strip-traefik-prefix:
+      stripPrefix:
+        prefixes:
+          - "/traefik"
+
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    security-headers:
+      headers:
+        customFrameOptionsValue: "SAMEORIGIN"
+        contentTypeNosniff: true
+        browserXssFilter: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsSeconds: 31536000
+        stsPreload: true
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
+          Server: ""
+
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginList:
+          - "https://metl.run"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    compress:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
