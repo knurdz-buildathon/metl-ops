@@ -1,6 +1,7 @@
 # ============================================
 # Metl Production — VM-1: Unified Application Server
 # Traefik reverse proxy + all platform services + AI agents
+# Builds images directly from metl-platform source (no GHCR)
 # ============================================
 name: metl-app
 
@@ -39,7 +40,7 @@ services:
   # UNIFIED FRONTEND
   # ============================================
   metl-frontend:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-frontend:latest
+    build: ../metl-platform/frontend
     container_name: metl-frontend
     restart: unless-stopped
     environment:
@@ -61,7 +62,7 @@ services:
   # API GATEWAY — Control-Plane (ONLY public API)
   # ============================================
   control-plane:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-control-plane:latest
+    build: ../metl-platform/services/control-plane
     container_name: metl-control-plane
     restart: unless-stopped
     ports:
@@ -109,7 +110,7 @@ services:
   # PLATFORM SERVICES (internal — no Traefik labels)
   # ============================================
   orchestration-agent:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-orchestration-agent:latest
+    build: ../metl-platform/services/orchestration-agent
     container_name: metl-orchestration-agent
     restart: unless-stopped
     environment:
@@ -120,7 +121,7 @@ services:
       - metl-platform
 
   resource-allocator:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-resource-allocator:latest
+    build: ../metl-platform/services/resource-allocator
     container_name: metl-resource-allocator
     restart: unless-stopped
     environment:
@@ -131,7 +132,7 @@ services:
       - metl-platform
 
   deployment-engine:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-deployment-engine:latest
+    build: ../metl-platform/services/deployment-engine
     container_name: metl-deployment-engine
     restart: unless-stopped
     environment:
@@ -146,7 +147,7 @@ services:
       - metl-platform
 
   sre-agent:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-sre-agent:latest
+    build: ../metl-platform/services/sre-agent
     container_name: metl-sre-agent
     restart: unless-stopped
     environment:
@@ -157,7 +158,7 @@ services:
       - metl-platform
 
   eco-mode:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-eco-mode:latest
+    build: ../metl-platform/services/eco-mode
     container_name: metl-eco-mode
     restart: unless-stopped
     environment:
@@ -168,7 +169,7 @@ services:
       - metl-platform
 
   ejection-agent:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-ejection-agent:latest
+    build: ../metl-platform/agents/ejection-agent
     container_name: metl-ejection-agent
     restart: unless-stopped
     environment:
@@ -179,7 +180,7 @@ services:
       - metl-platform
 
   scaling-agent:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-scaling-agent:latest
+    build: ../metl-platform/services/scaling-agent
     container_name: metl-scaling-agent
     restart: unless-stopped
     environment:
@@ -190,7 +191,7 @@ services:
       - metl-platform
 
   simple-vault:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-simple-vault:latest
+    build: ../metl-platform/services/simple-vault
     container_name: metl-simple-vault
     restart: unless-stopped
     environment:
@@ -199,13 +200,12 @@ services:
       - VAULT_KEY=${VAULT_KEY}
     networks:
       - metl-platform
-    # Internal only — no traefik labels
 
   # ============================================
   # PLATFORM AI AGENTS (internal via NATS)
   # ============================================
   vibe-coder:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder:latest
+    build: ../metl-platform/agents/vibe-coder
     container_name: metl-vibe-coder
     restart: unless-stopped
     environment:
@@ -232,7 +232,7 @@ services:
       - metl-platform
 
   vibe-coder-sdk:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder-sdk:latest
+    build: ../metl-platform/agents/vibe-coder-sdk
     container_name: metl-vibe-coder-sdk
     restart: unless-stopped
     environment:
@@ -264,7 +264,7 @@ services:
       - metl-platform
 
   security-hunter:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-security-hunter:latest
+    build: ../metl-platform/agents/security-hunter
     container_name: metl-security-hunter
     restart: unless-stopped
     environment:

@@ -1,12 +1,12 @@
 # ============================================
 # Metl Production — VM-3: AI Worker
-# Metl Platform AI Agents (vibe-coder, vibe-coder-sdk)
+# Builds AI agents directly from metl-platform source (no GHCR)
 # ============================================
 name: metl-ai
 
 services:
   vibe-coder:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder:latest
+    build: ../metl-platform/agents/vibe-coder
     container_name: metl-vibe-coder
     restart: unless-stopped
     environment:
@@ -33,7 +33,7 @@ services:
       - metl-ai
 
   vibe-coder-sdk:
-    image: ghcr.io/${GITHUB_USER:-metl}/metl-platform-vibe-coder-sdk:latest
+    build: ../metl-platform/agents/vibe-coder-sdk
     container_name: metl-vibe-coder-sdk
     restart: unless-stopped
     environment:
