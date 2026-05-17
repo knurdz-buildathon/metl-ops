@@ -6,7 +6,9 @@ name: metl-ai
 
 services:
   vibe-coder:
-    build: ../metl-platform/agents/vibe-coder
+    build:
+      context: ../metl-platform
+      dockerfile: agents/vibe-coder/Dockerfile
     container_name: metl-vibe-coder
     restart: unless-stopped
     environment:
@@ -33,7 +35,9 @@ services:
       - metl-ai
 
   vibe-coder-sdk:
-    build: ../metl-platform/agents/vibe-coder-sdk
+    build:
+      context: ../metl-platform
+      dockerfile: agents/vibe-coder-sdk/Dockerfile
     container_name: metl-vibe-coder-sdk
     restart: unless-stopped
     environment:
