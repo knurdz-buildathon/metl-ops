@@ -30,7 +30,7 @@ entryPoints:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: ${LETSENCRYPT_EMAIL:-admin@metl.run}
+      email: ${LETSENCRYPT_EMAIL}
       storage: /letsencrypt/acme.json
       tlsChallenge: {}
 
