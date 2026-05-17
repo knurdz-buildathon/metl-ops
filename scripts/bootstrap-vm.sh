@@ -222,6 +222,11 @@ if [[ "$VM_ROLE" == "data" ]]; then
     sysctl -w kernel.shmall=4194304 || true
     echo "kernel.shmmax=17179869184" >> /etc/sysctl.conf
     echo "kernel.shmall=4194304" >> /etc/sysctl.conf
+
+    # Required for SonarQube (embedded Elasticsearch)
+    sysctl -w vm.max_map_count=262144 || true
+    echo "vm.max_map_count=262144" >> /etc/sysctl.conf
+
     sysctl -p
 
     # Allow database connections from VNet subnet
