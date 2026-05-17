@@ -30,7 +30,7 @@ entryPoints:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: ${LETSENCRYPT_EMAIL}
+      # Contact address is set via Traefik CLI in docker-compose (Compose expands .env).
       storage: /letsencrypt/acme.json
       tlsChallenge: {}
 

@@ -27,6 +27,10 @@ services:
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    # ACME email must be passed on the CLI so Compose substitutes ${LETSENCRYPT_EMAIL}
+    # from .env; Traefik static YAML ${VAR} expansion is unreliable for this field.
+    command:
+      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}
     networks:
       - metl-platform
     labels:

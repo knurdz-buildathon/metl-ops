@@ -25,6 +25,8 @@ services:
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    command:
+      - --certificatesresolvers.letsencrypt.acme.email=${LETSENCRYPT_EMAIL}
     networks:
       - metl-platform
     labels:
