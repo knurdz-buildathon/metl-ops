@@ -69,6 +69,14 @@ else
     log "Docker Compose already installed"
 fi
 
+# Create docker-compose symlink for backward compatibility
+if [[ ! -f /usr/local/bin/docker-compose ]]; then
+    ln -s "$(which docker)" /usr/local/bin/docker-compose 2>/dev/null || \
+    ln -sf "$DOCKER_CONFIG/cli-plugins/docker-compose" /usr/local/bin/docker-compose 2>/dev/null || \
+    echo '#!/bin/bash\ndocker compose "$@"' > /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
+    log "docker-compose symlink created"
+fi
+
 # ============================================
 # 3. System Hardening
 # ============================================
@@ -247,4 +255,4 @@ log ""
 log "Next steps:"
 log "  1. Copy your .env file to /opt/metl/metl-ops/.env"
 log "  2. Copy docker-compose files to /opt/metl/metl-ops/"
-log "  3. Run: docker-compose up -d"
+log "  3. Run: docker compose up -d"

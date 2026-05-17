@@ -36,8 +36,6 @@ services:
       - "-c"
       - "logging_collector=on"
       - "-c"
-      - "log_directory=/var/log/postgresql"
-      - "-c"
       - "max_connections=200"
 
   redis:
@@ -70,9 +68,6 @@ services:
       --jetstream
       --store_dir /data/jetstream
       --http_port 8222
-      --cluster_name metl
-      --cluster_listen 0.0.0.0:6222
-      --routes nats://nats:6222
     volumes:
       - nats_data:/data/jetstream
     healthcheck:
@@ -91,7 +86,7 @@ services:
     ports:
       - "9000:9000"
     environment:
-      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/sonarqube
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/metl
       SONAR_JDBC_USERNAME: ${POSTGRES_USER}
       SONAR_JDBC_PASSWORD: ${POSTGRES_PASSWORD}
       SONAR_WEB_JAVAADDITIONALOPTS: >-

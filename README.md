@@ -24,21 +24,21 @@ cp .env.example .env
 ```bash
 ssh metladmin@<VM2_IP>
 cd ~/metl-ops
-docker-compose -f docker-compose.data.yml up -d
+docker compose -f docker-compose.data.yml up -d
 ```
 
 3. Deploy VM-3 (AI Worker):
 ```bash
 ssh metladmin@<VM3_IP>
 cd ~/metl-ops
-docker-compose -f docker-compose.ai.yml up -d
+docker compose -f docker-compose.ai.yml up -d
 ```
 
 4. Deploy VM-1 (App Server) last:
 ```bash
 ssh metladmin@<VM1_IP>
 cd ~/metl-ops
-docker-compose -f docker-compose.app.yml up -d
+docker compose -f docker-compose.app.yml up -d
 ```
 
 ## Directory Structure

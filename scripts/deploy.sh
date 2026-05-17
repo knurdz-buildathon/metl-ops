@@ -44,33 +44,33 @@ service="${2:-}"
 
 up_data() {
     echo "=== Starting Data Stack ==="
-    docker-compose -f docker-compose.data.yml up -d
+    docker compose -f docker-compose.data.yml up -d
 }
 
 up_app() {
     echo "=== Starting App Stack ==="
     touch traefik/acme.json
     chmod 600 traefik/acme.json
-    docker-compose -f docker-compose.app.yml up -d
+    docker compose -f docker-compose.app.yml up -d
 }
 
 up_ai() {
     echo "=== Starting AI Stack ==="
-    docker-compose -f docker-compose.ai.yml up -d
+    docker compose -f docker-compose.ai.yml up -d
 }
 
 down_all() {
     echo "=== Stopping all stacks ==="
-    docker-compose -f docker-compose.data.yml down 2>/dev/null || true
-    docker-compose -f docker-compose.app.yml down 2>/dev/null || true
-    docker-compose -f docker-compose.ai.yml down 2>/dev/null || true
+    docker compose -f docker-compose.data.yml down 2>/dev/null || true
+    docker compose -f docker-compose.app.yml down 2>/dev/null || true
+    docker compose -f docker-compose.ai.yml down 2>/dev/null || true
 }
 
 pull_all() {
     echo "=== Pulling latest images ==="
-    docker-compose -f docker-compose.data.yml pull 2>/dev/null || true
-    docker-compose -f docker-compose.app.yml pull 2>/dev/null || true
-    docker-compose -f docker-compose.ai.yml pull 2>/dev/null || true
+    docker compose -f docker-compose.data.yml pull 2>/dev/null || true
+    docker compose -f docker-compose.app.yml pull 2>/dev/null || true
+    docker compose -f docker-compose.ai.yml pull 2>/dev/null || true
 }
 
 update() {

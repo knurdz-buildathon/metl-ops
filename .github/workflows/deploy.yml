@@ -42,7 +42,7 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/metl-ops
-            docker-compose -f docker-compose.data.yml up -d --remove-orphans
+            docker compose -f docker-compose.data.yml up -d --remove-orphans
             docker image prune -af --filter "until=168h"
 
   deploy-app:
@@ -75,7 +75,7 @@ jobs:
             cd ~/metl-ops
             touch traefik/acme.json
             chmod 600 traefik/acme.json
-            docker-compose -f docker-compose.app.yml up -d --remove-orphans
+            docker compose -f docker-compose.app.yml up -d --remove-orphans
             docker image prune -af --filter "until=168h"
 
   deploy-ai:
@@ -105,5 +105,5 @@ jobs:
           script: |
             set -euo pipefail
             cd ~/metl-ops
-            docker-compose -f docker-compose.ai.yml up -d --remove-orphans
+            docker compose -f docker-compose.ai.yml up -d --remove-orphans
             docker image prune -af --filter "until=168h"

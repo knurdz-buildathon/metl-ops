@@ -30,12 +30,9 @@ entryPoints:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: ${CF_EMAIL:-admin@metl.run}
+      email: ${LETSENCRYPT_EMAIL:-admin@metl.run}
       storage: /letsencrypt/acme.json
       tlsChallenge: {}
-      # Cloudflare DNS challenge (recommended for wildcard):
-      # dnsChallenge:
-      #   provider: cloudflare
 
 providers:
   docker:
